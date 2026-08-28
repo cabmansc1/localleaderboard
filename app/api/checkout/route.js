@@ -47,6 +47,13 @@ export async function POST(req) {
 
     const session = await getStripe().checkout.sessions.create({
       mode: 'payment',
+      // Managed Payments is on by default and would require a product tax
+      // code on every line, then add sales tax on top of the bid. A bid is
+      // meant to be exactly what the bidder is charged — $50 bid, $50 taken,
+      // $50 credited to the board — so it is off here. If you later want
+      // Stripe collecting sales tax, drop this and set a tax_code on
+      // product_data instead; picking that code is a tax decision.
+      managed_payments: { enabled: false },
       // Metadata is the only thing the webhook trusts. For an entry the
       // listing does not exist yet, so everything needed to create it rides
       // along here and is written only once payment actually succeeds.
