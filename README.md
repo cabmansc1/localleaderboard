@@ -134,6 +134,16 @@ are not configured. Nothing else on the site is affected.
 
 Test with Stripe's test keys and card `4242 4242 4242 4242` first.
 
+### Managed Payments
+
+Stripe enables Managed Payments by default, which rejects a line item with no
+product tax code and would add sales tax on top of the bid. The Checkout
+session opts out with `managed_payments: { enabled: false }`, so a bid is
+exactly what the bidder is charged: $50 bid, $50 taken, $50 credited to the
+board. If sales tax should be collected, set a `tax_code` on `product_data`
+instead of using that flag — choosing the code is a tax decision.
+
+
 ## Not yet built
 
 The random hourly spotlight, the underdog list, and the dethroned email alerts
