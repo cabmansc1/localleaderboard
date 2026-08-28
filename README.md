@@ -8,9 +8,29 @@ featured panel on next month's printed 9x12 card.
 
 | Path | What it is |
 | --- | --- |
-| `app/page.js` | Next.js app-router home page — the public board |
-| `lib/config.js` | Rules, towns, categories, formatting helpers, copy |
+| `app/page.js` | The public board |
+| `app/b/[id]/page.js` | One business's listing |
+| `app/c/[slug]/page.js` | A single category board |
+| `app/how-it-works/page.js` | The six mechanisms |
+| `app/rules/page.js` | The rules |
+| `app/api/board/route.js` | Server-side read of the Google Sheet |
+| `components/board.js` | `useBoard`, `useBidModal`, `BidModal`, `Row` |
+| `components/Shell.js` | Header and footer |
+| `lib/config.js` | Rules, towns, categories, helpers, copy |
 | `apps-script/Code.gs` | Google Sheets backend (Apps Script web app) |
+
+## Running locally
+
+```bash
+npm install
+cp .env.example .env.local   # then fill in SHEETS_URL
+npm run dev
+```
+
+The board is read through `/api/board`, which calls `SHEETS_URL` server side.
+That keeps the Apps Script URL out of the browser and avoids CORS on the
+`script.google.com` redirect. Without `SHEETS_URL` set, the site still builds
+and runs — it just shows the "could not load the board" notice.
 
 ## How it works
 
@@ -34,9 +54,21 @@ Writes are only ever made by the Stripe webhook, never the browser, and are
 guarded by a shared secret plus a script lock. Stripe session IDs are recorded
 so duplicate webhook deliveries are ignored.
 
-## Not yet in this repo
+## Deploying
 
-`app/page.js` imports `@/components/Shell` and `@/components/board`
-(`BidModal`, `useBidModal`, `useBoard`, `Row`), which are not committed here
-yet. The Next.js scaffolding (`package.json`, `next.config.js`, `jsconfig.json`
-with the `@/*` path alias) is also still to be added.
+Deployed on Railway from this repo. Railway builds with Nixpacks
+(`npm run build`, then `npm start`), and `npm start` binds `$PORT`, which
+Railway sets. The one variable you must set is `SHEETS_URL`.
+
+## Not wired up yet
+
+**Payments.** The bid modal validates and collects everything needed for an
+entry or a boost, but nothing is charged — submitting shows a confirmation
+that says so explicitly. To go live you need a Stripe Checkout session route
+and a webhook that POSTs `action: 'entry'` or `action: 'boost'` to the Apps
+Script `doPost` with the shared secret. `Code.gs` is already built for this:
+it validates the secret, serializes writes with a script lock, and ignores
+duplicate Stripe session IDs.
+
+**Not yet built:** the random hourly spotlight, the underdog list, and the
+dethroned email alerts described in `MECHANISMS`.
