@@ -46,6 +46,15 @@ a reason to enter.
 A business with zero boosts holds no category crown no matter what it bid
 (`MIN_BOOSTS_FOR_CROWN`), so a category can sit uncrowned.
 
+Food is split into Seafood, BBQ, Pizza and Bars & Breweries, with
+**Restaurants kept as the catch-all** — a burger joint, a taqueria or a bakery
+is none of the four, and every listing needs somewhere to sit.
+
+Adding a category is safe. Renaming or removing one orphans existing rows,
+because `listings.category` stores the string rather than a foreign key. Each
+category also costs a line in the category strip on the printed card, so the
+count is a print-inventory decision as much as a taxonomy one.
+
 The homepage lists **all** of `CATEGORIES`, not just the crowned ones. An open
 crown is the most persuasive thing on the page for a business in a quiet
 category, so those cards say "Crown open — one boost takes it" and link
