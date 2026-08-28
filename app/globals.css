@@ -398,3 +398,41 @@ section { margin-top: 72px; scroll-margin-top: 84px; }
 .cat.open:hover { border-color: var(--gold); }
 .open-kn { color: var(--dim); }
 .open-kb { color: var(--gold); font-weight: 700; }
+
+/* -------------------------- categories page ----------------------- */
+
+.cats-page { max-width: 720px; }
+.cats { display: grid; gap: 14px; margin-top: 34px; }
+
+.cat-card {
+  padding: 20px 22px; border-radius: 16px;
+  background: var(--panel); border: 1px solid var(--line);
+}
+.cat-card-head { display: flex; align-items: center; gap: 12px; }
+.cat-ico { font-size: 22px; line-height: 1; }
+.cat-name { font-size: 22px; font-weight: 800; letter-spacing: -.01em; }
+.cat-card-head:hover .cat-name { color: var(--gold); }
+.cat-count { margin-top: 6px; color: var(--dim); font-size: 14px; }
+
+.cat-king {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  margin-top: 16px; padding: 12px 14px; border-radius: 10px;
+  background: var(--panel-2); border: 1px solid var(--line);
+  cursor: pointer; transition: border-color .15s;
+}
+.cat-king:hover { border-color: var(--gold-deep); }
+.king-pill {
+  padding: 3px 9px; border-radius: 5px;
+  background: var(--gold); color: #17130a;
+  font-size: 10px; font-weight: 900; letter-spacing: .1em;
+}
+.cat-king-name { font-weight: 700; }
+.cat-king-meta { margin-left: auto; color: var(--dim); font-size: 13px; white-space: nowrap; }
+
+.cat-empty {
+  display: block; width: 100%; margin-top: 16px; padding: 15px;
+  border: 1px dashed var(--line); border-radius: 10px;
+  color: var(--dim); font-size: 14px; text-align: left;
+  transition: border-color .15s, color .15s;
+}
+.cat-empty:hover { border-color: var(--gold-deep); color: var(--gold); }

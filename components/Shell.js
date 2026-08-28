@@ -12,7 +12,7 @@ export default function Shell({ children, onEnter }) {
         </Link>
         <nav className="nav-links">
           <Link href="/#board">Board</Link>
-          <Link href="/#categories">Categories</Link>
+          <Link href="/categories">Categories</Link>
           <Link href="/how-it-works">How it works</Link>
           <Link href="/rules">Rules</Link>
         </nav>
