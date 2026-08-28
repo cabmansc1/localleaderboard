@@ -10,6 +10,15 @@
 
 import { getPool, migrate, createListing, addBoost } from '../lib/db.js';
 
+// Varied names so the live feed looks like a feed, not one repeated person.
+const BOOSTERS = [
+  'Betty Wilson', 'Marcus Delgado', 'Ann Pham', 'Dave Kowalski', 'Rosa Nunez',
+  'Tim Blakely', 'Priya Raman', 'Jordan Fields', 'Sam Okafor', 'Carla Mendes',
+  'Nate Ellison', 'Grace Yoon', 'Hank Voss', 'Leila Amari', 'Owen Traversi'
+];
+let boosterIdx = 0;
+const nextBooster = () => BOOSTERS[boosterIdx++ % BOOSTERS.length];
+
 const SAMPLE = [
   { name: 'Palmetto Roofing Co.',       category: 'Roofing',          town: 'Mount Pleasant',       self_bid: 250, boosts: [25, 25, 10, 10, 10, 5, 5, 5, 5, 2, 2, 2] },
   { name: 'Charleston Comfort HVAC',    category: 'HVAC',             town: 'West Ashley',          self_bid: 150, boosts: [25, 20, 10, 10, 5, 5, 2] },
@@ -44,7 +53,7 @@ for (const b of SAMPLE) {
   });
 
   for (const amount of b.boosts) {
-    await addBoost({ listing_id, amount, booster_name: 'A local customer' });
+    await addBoost({ listing_id, amount, booster_name: nextBooster() });
   }
 
   const raised = b.self_bid + b.boosts.reduce((s, n) => s + n, 0);

@@ -37,3 +37,6 @@ CREATE INDEX IF NOT EXISTS listings_rank_idx
 CREATE INDEX IF NOT EXISTS listings_category_idx ON listings (category) WHERE status = 'live';
 CREATE INDEX IF NOT EXISTS listings_town_idx     ON listings (town)     WHERE status = 'live';
 CREATE INDEX IF NOT EXISTS bids_listing_idx      ON bids (listing_id);
+
+-- The live feed reads the newest bids first.
+CREATE INDEX IF NOT EXISTS bids_recent_idx ON bids (created_at DESC);

@@ -46,6 +46,22 @@ a reason to enter.
 A business with zero boosts holds no category crown no matter what it bid
 (`MIN_BOOSTS_FOR_CROWN`), so a category can sit uncrowned.
 
+The homepage lists **all** of `CATEGORIES`, not just the crowned ones. An open
+crown is the most persuasive thing on the page for a business in a quiet
+category, so those cards say "Crown open — one boost takes it" and link
+through to the empty category board.
+
+### Live feed
+
+`/api/activity` returns the newest bids joined to their listings, rendered as
+"Betty W. boosted Boba Fusion" on the homepage and polled every 20s.
+
+Booster emails are never selected, and names are shortened to a first name and
+an initial **in `getActivity()`**, not in the browser — so a full surname never
+leaves the server. The boost form labels the name field "shown on the live
+feed" and the email field "never shown", because people are typing into a
+public wall and should know it.
+
 ### Badges
 
 `/api/badge/[id]` renders a PNG for any listing — wide (1200x630) or

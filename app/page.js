@@ -3,11 +3,12 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Shell from '@/components/Shell';
-import { BidModal, useBidModal, useBoard, Row } from '@/components/board';
-import { RULES, TOWNS, total, money, slug, categoryLeaders } from '@/lib/config';
+import { ActivityFeed, BidModal, useActivity, useBidModal, useBoard, Row } from '@/components/board';
+import { RULES, TOWNS, CATEGORIES, total, money, slug, categoryLeaders } from '@/lib/config';
 
 export default function Home() {
   const { ranked, loading, error } = useBoard();
+  const activity = useActivity({ limit: 10 });
   const m = useBidModal();
   const [town, setTown] = useState('All towns');
 
@@ -16,13 +17,16 @@ export default function Home() {
     () => ranked.filter((l) => town === 'All towns' || l.town === town),
     [ranked, town]
   );
-  // Category crowns go to the most customer boosts, not the most money, and
-  // every category that has one is shown — there are 14, and burying the
-  // smaller ones is exactly how a niche business decides not to enter.
-  const categoryKings = useMemo(
-    () => [...categoryLeaders(ranked).values()].sort((a, b) => b.boost_count - a.boost_count),
-    [ranked]
-  );
+  // Every category is listed, crowned or not. An open crown is the most
+  // persuasive thing on the page for a business in a quiet category, so
+  // hiding the empty ones is exactly backwards.
+  const categories = useMemo(() => {
+    const crowns = categoryLeaders(ranked);
+    const counts = ranked.reduce((acc, l) => ({ ...acc, [l.category]: (acc[l.category] || 0) + 1 }), {});
+    return CATEGORIES
+      .map((name) => ({ name, king: crowns.get(name) || null, listed: counts[name] || 0 }))
+      .sort((a, b) => (b.king?.boost_count || 0) - (a.king?.boost_count || 0) || b.listed - a.listed);
+  }, [ranked]);
   const trending = useMemo(
     () => [...ranked].sort((a, b) => b.boost_count - a.boost_count).slice(0, 5),
     [ranked]
@@ -55,13 +59,26 @@ export default function Home() {
         )}
         {loading && <div className="loading">LOADING THE BOARD…</div>}
 
+        {activity.length > 0 && (
+          <section>
+            <p className="eyebrow"><span className="tag live">●</span> Happening now</p>
+            <ActivityFeed
+              items={activity}
+              onPick={(a) => {
+                const l = ranked.find((x) => x.id === a.listing_id);
+                if (l) m.openBoost(l);
+              }}
+            />
+          </section>
+        )}
+
         {trending.length > 0 && (
           <section>
             <p className="eyebrow"><span className="tag">🔥</span> Most support right now</p>
             <div className="chips">
               {trending.map((l) => (
                 <div className="chip" key={l.id} onClick={() => m.openBoost(l)}>
-                  {l.name} <span>{l.boost_count} boosts</span>
+                  {l.name} <span>{l.boost_count} {l.boost_count === 1 ? 'boost' : 'boosts'}</span>
                 </div>
               ))}
             </div>
@@ -147,27 +164,41 @@ export default function Home() {
           </div>
         </section>
 
-        {categoryKings.length > 0 && (
-          <section id="categories">
-            <h2 className="sec">Every category has a crown</h2>
-            <p className="sec-sub">
-              Category crowns are won on customer boosts, not budget — the business with the
-              most regulars behind it takes it. Tap through to the full category board.
-            </p>
-            <div className="cat-grid">
-              {categoryKings.map((l) => (
-                <Link className="cat" key={l.id} href={`/c/${slug(l.category)}`}>
-                  <div className="cn">{l.category}</div>
-                  <div className="kn">{l.name}</div>
-                  <div className="kt">{l.town}</div>
-                  <div className="kb">
-                    <span className="boosted">{l.boost_count} {l.boost_count === 1 ? 'boost' : 'boosts'}</span> to beat · {money(total(l))} raised
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
+        <section id="categories">
+          <h2 className="sec">All {CATEGORIES.length} categories</h2>
+          <p className="sec-sub">
+            Category crowns are won on customer boosts, not budget. An open crown is
+            anyone&apos;s — one boost takes it.
+          </p>
+          <div className="cat-grid">
+            {categories.map((c) => (
+              <Link className={`cat ${c.king ? '' : 'open'}`} key={c.name} href={`/c/${slug(c.name)}`}>
+                <div className="cn">{c.name}</div>
+                {c.king ? (
+                  <>
+                    <div className="kn">{c.king.name}</div>
+                    <div className="kt">{c.king.town}</div>
+                    <div className="kb">
+                      <span className="boosted">
+                        {c.king.boost_count} {c.king.boost_count === 1 ? 'boost' : 'boosts'}
+                      </span> to beat
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="kn open-kn">Crown open</div>
+                    <div className="kt">
+                      {c.listed === 0
+                        ? 'Nobody listed yet'
+                        : `${c.listed} listed, none boosted`}
+                    </div>
+                    <div className="kb open-kb">One boost takes it →</div>
+                  </>
+                )}
+              </Link>
+            ))}
+          </div>
+        </section>
 
         <section id="board">
           <h2 className="sec">The board</h2>

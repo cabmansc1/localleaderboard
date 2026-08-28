@@ -46,6 +46,69 @@ export function useBoard() {
 }
 
 /* ------------------------------------------------------------------ */
+/* useActivity — the live feed                                         */
+/* ------------------------------------------------------------------ */
+
+const ago = (iso) => {
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+};
+
+export function useActivity({ limit = 12, pollMs = 20000 } = {}) {
+  const [activity, setActivity] = useState([]);
+
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const res = await fetch(`/api/activity?limit=${limit}`, { cache: 'no-store' });
+        const data = await res.json();
+        if (alive && data.ok) setActivity(data.activity);
+      } catch { /* a dropped poll is not worth surfacing */ }
+    };
+    load();
+    const t = setInterval(load, pollMs);
+    return () => { alive = false; clearInterval(t); };
+  }, [limit, pollMs]);
+
+  return activity;
+}
+
+export function ActivityFeed({ items, onPick }) {
+  if (!items.length) return null;
+  return (
+    <div className="feed">
+      {items.map((a, i) => (
+        <div
+          className={`feed-row ${a.type === 'entry' ? 'is-entry' : ''}`}
+          key={`${a.listing_id}-${a.created_at}-${i}`}
+          onClick={() => onPick?.(a)}
+        >
+          <span className="feed-dot">{a.type === 'entry' ? '🏪' : '🙌'}</span>
+          <span className="feed-text">
+            {a.type === 'entry' ? (
+              <>
+                <b>{a.listing_name}</b> bid its way onto the board
+              </>
+            ) : (
+              <>
+                <b>{a.booster}</b> boosted <b>{a.listing_name}</b>
+              </>
+            )}
+            <span className="feed-sub">{a.category} · {a.town}</span>
+          </span>
+          <span className="feed-amt">{money(a.amount)}</span>
+          <span className="feed-ago">{ago(a.created_at)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* useBidModal — one modal, two modes                                  */
 /* ------------------------------------------------------------------ */
 
@@ -228,10 +291,10 @@ export function BidModal({ mode, target, king, onClose }) {
                 </>
               ) : (
                 <div className="modal-two">
-                  <label>Your name <span className="opt">optional</span>
+                  <label>Your name <span className="opt">shown on the live feed</span>
                     <input value={form.booster_name} onChange={set('booster_name')} placeholder="A happy customer" />
                   </label>
-                  <label>Your email <span className="opt">optional</span>
+                  <label>Your email <span className="opt">never shown</span>
                     <input type="email" value={form.booster_email} onChange={set('booster_email')} placeholder="you@email.com" />
                   </label>
                 </div>
