@@ -111,14 +111,19 @@ const EMPTY = {
 
 export function BidModal({ mode, target, king, onClose }) {
   const [form, setForm] = useState(EMPTY);
-  const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState(null);
 
   const isEntry = mode === 'entry';
   const min = isEntry ? RULES.MIN_ENTRY : RULES.MIN_BOOST;
 
   // Fresh form every time the modal opens.
   useEffect(() => {
-    if (mode) { setForm({ ...EMPTY, amount: String(min) }); setDone(false); }
+    if (mode) {
+      setForm({ ...EMPTY, amount: String(min) });
+      setSubmitting(false);
+      setServerError(null);
+    }
   }, [mode, min]);
 
   if (!mode) return null;
@@ -139,23 +144,38 @@ export function BidModal({ mode, target, king, onClose }) {
     ? total(king) - total(target) + 1
     : null;
 
+  // Hands off to Stripe Checkout. The amount is re-validated server side —
+  // this form is a convenience, not the authority on what may be charged.
+  async function submit() {
+    setSubmitting(true);
+    setServerError(null);
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(
+          isEntry
+            ? { mode: 'entry', amount, name: form.name, category: form.category,
+                town: form.town, contact_email: form.contact_email, phone: form.phone }
+            : { mode: 'boost', amount, listing_id: target?.id,
+                booster_name: form.booster_name, booster_email: form.booster_email }
+        )
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Could not start checkout.');
+      window.location.assign(data.url);
+    } catch (err) {
+      setServerError(err.message || String(err));
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div className="modal-back" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <button className="modal-x" onClick={onClose} aria-label="Close">×</button>
 
-        {done ? (
-          <div className="modal-done">
-            <div className="modal-done-icon">✓</div>
-            <h3>Got it — but nothing has been charged.</h3>
-            <p>
-              Payments are not connected yet, so this bid was not taken and no listing
-              was created. Wire up Stripe and this form will run a real checkout.
-            </p>
-            <button className="btn-gold" onClick={onClose}>CLOSE</button>
-          </div>
-        ) : (
-          <>
+        <>
             <div className="modal-head">
               <div className="modal-eyebrow">
                 {isEntry ? '🏪 GET ON THE BOARD' : '🙌 BOOST THIS BUSINESS'}
@@ -239,19 +259,26 @@ export function BidModal({ mode, target, king, onClose }) {
                 ))}
               </div>
 
-              {problem && <div className="modal-problem">{problem}</div>}
+              {(problem || serverError) && (
+                <div className="modal-problem">{problem || serverError}</div>
+              )}
 
-              <button className="btn-gold wide" disabled={!!problem} onClick={() => setDone(true)}>
-                {isEntry ? `BID ${money(amount)} TO ENTER` : `BOOST ${money(amount)}`}
+              <button
+                className="btn-gold wide"
+                disabled={!!problem || submitting}
+                onClick={submit}
+              >
+                {submitting
+                  ? 'TAKING YOU TO CHECKOUT…'
+                  : isEntry ? `BID ${money(amount)} TO ENTER` : `BOOST ${money(amount)}`}
               </button>
 
               <p className="modal-fine">
-                Payments are not connected yet — submitting will not charge you.
-                Bids are final and non-refundable once Stripe is live.
+                You will be taken to Stripe to pay. Bids are final and
+                non-refundable, except where refunds are required by law.
               </p>
             </div>
-          </>
-        )}
+        </>
       </div>
     </div>
   );

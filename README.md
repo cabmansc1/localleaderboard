@@ -14,6 +14,10 @@ featured panel on next month's printed 9x12 card.
 | `app/how-it-works/page.js` | The six mechanisms |
 | `app/rules/page.js` | The rules |
 | `app/api/board/route.js` | Reads the board out of Postgres |
+| `app/api/checkout/route.js` | Validates a bid and opens a Stripe Checkout session |
+| `app/api/stripe/webhook/route.js` | Records the bid once Stripe confirms payment |
+| `app/thanks/page.js` | Where Stripe returns after a successful payment |
+| `lib/stripe.js` | Stripe client and server-side bid validation |
 | `lib/db.js` | Connection pool, migrations, and every query |
 | `db/schema.sql` | The schema. Applied automatically on first request. |
 | `scripts/seed.js` | Sample businesses, so the board is not empty |
@@ -91,14 +95,46 @@ longer wired up. It had three problems Postgres removes outright:
 
 The file is kept for reference. Nothing imports it.
 
-## Not wired up yet
+## Payments
 
-**Payments.** The bid modal validates and collects everything needed for an
-entry or a boost, but nothing is charged — submitting shows a confirmation
-that says so explicitly. To go live you need a Stripe Checkout session route
-and a webhook that calls `createListing()` or `addBoost()` from `lib/db.js`,
-passing the Stripe session id. Both functions already take `stripe_session`
-and are idempotent, so the webhook can be redelivered safely.
+Money never moves on the browser's say-so. The flow is:
 
-**Not yet built:** the random hourly spotlight, the underdog list, and the
-dethroned email alerts described in `MECHANISMS`.
+1. The modal posts the bid to `/api/checkout`.
+2. `validateBid()` in `lib/stripe.js` re-checks everything server side — the
+   `$10` entry floor, the `$2` boost floor, the `$5000` ceiling, whole dollars
+   only, and category and town against the published allowlists. A boost is
+   additionally checked against a real, live listing.
+3. Only then is a Stripe Checkout session created, with the bid's details in
+   `metadata`. For an entry, **no listing is written yet** — it exists only
+   after payment.
+4. Stripe charges the customer and calls `/api/stripe/webhook`.
+5. The webhook verifies the raw body against the signing secret, ignores
+   anything that is not a paid `checkout.session.completed`, and calls
+   `createListing()` or `addBoost()` with the Stripe session id.
+
+Because `bids.stripe_session` is `UNIQUE`, a redelivered webhook — which
+Stripe will send — updates nothing and reports itself as a duplicate. The
+webhook returns 500 on a database error so Stripe retries, which is safe
+precisely because the handlers are idempotent.
+
+### Going live
+
+Set both variables on the `web` service:
+
+| Variable | Where it comes from |
+| --- | --- |
+| `STRIPE_SECRET_KEY` | Stripe dashboard → Developers → API keys |
+| `STRIPE_WEBHOOK_SECRET` | Stripe dashboard → Developers → Webhooks, after adding the endpoint |
+
+The webhook endpoint is `https://<your-domain>/api/stripe/webhook`, subscribed
+to `checkout.session.completed`.
+
+Until both are set, `/api/checkout` returns a 503 and the modal says payments
+are not configured. Nothing else on the site is affected.
+
+Test with Stripe's test keys and card `4242 4242 4242 4242` first.
+
+## Not yet built
+
+The random hourly spotlight, the underdog list, and the dethroned email alerts
+described in `MECHANISMS`.
