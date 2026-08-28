@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import Shell from '@/components/Shell';
 import { BidModal, useBidModal, useBoard } from '@/components/board';
-import { total, money, slug } from '@/lib/config';
+import { total, money, slug, categoryLeaders } from '@/lib/config';
 
 export default function Listing() {
   const { id } = useParams();
@@ -14,6 +14,8 @@ export default function Listing() {
   const idx = ranked.findIndex((l) => String(l.id) === String(id));
   const listing = idx > -1 ? ranked[idx] : null;
   const king = ranked[0];
+  const catKing = listing ? categoryLeaders(ranked).get(listing.category) : null;
+  const holdsCategory = catKing?.id === listing?.id;
 
   return (
     <Shell onEnter={m.openEntry}>
@@ -46,11 +48,44 @@ export default function Listing() {
                 <div className="d">{listing.boost_count === 0 ? 'Nobody has boosted yet. Be first.' : 'People who put money behind this business.'}</div>
               </div>
               <div className="prize-item">
-                <div className="n">{idx === 0 ? 'STATUS' : 'GAP TO THE CROWN'}</div>
-                <div className="t">{idx === 0 ? '👑 King' : money(total(king) - total(listing))}</div>
-                <div className="d">{idx === 0 ? `Top of ${listing.category} and the board overall.` : `Behind ${king?.name}.`}</div>
+                <div className="n">{listing.category.toUpperCase()} CROWN</div>
+                <div className="t">
+                  {holdsCategory ? 'Held' : catKing ? `${catKing.boost_count - listing.boost_count + 1} boosts away` : 'Open'}
+                </div>
+                <div className="d">
+                  {holdsCategory
+                    ? 'Most customer boosts in this category. Won on backing, not budget.'
+                    : catKing
+                      ? `${catKing.name} holds it on ${catKing.boost_count} ${catKing.boost_count === 1 ? 'boost' : 'boosts'}.`
+                      : 'Nobody in this category has a boost yet. The first one takes the crown.'}
+                </div>
               </div>
             </div>
+
+            <section className="badge-block">
+              <p className="eyebrow"><span className="tag">🏅</span> Share this</p>
+              <div className="badge-row">
+                <img className="badge-img" src={`/api/badge/${listing.id}`} alt={`${listing.name} badge`} />
+                <div className="badge-side">
+                  <h3>
+                    {idx === 0 ? 'The Crown badge' : holdsCategory ? 'Most-Backed badge' : 'Listing badge'}
+                  </h3>
+                  <p>
+                    {holdsCategory || idx === 0
+                      ? 'Post it anywhere. It states exactly what it measures and carries the month, so it stays true — and has to be defended next month.'
+                      : 'Take the category crown on customer boosts and this becomes a Most-Backed badge.'}
+                  </p>
+                  <div className="badge-links">
+                    <a href={`/api/badge/${listing.id}`} download={`${slug(listing.name)}-badge.png`}>
+                      <button className="btn-gold">DOWNLOAD · WIDE</button>
+                    </a>
+                    <a href={`/api/badge/${listing.id}?size=square`} download={`${slug(listing.name)}-badge-square.png`}>
+                      <button className="btn-ghost">SQUARE</button>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </section>
 
             <div className="king-foot">
               <p>Think this business deserves the crown?</p>

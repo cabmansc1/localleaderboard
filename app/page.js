@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Shell from '@/components/Shell';
 import { BidModal, useBidModal, useBoard, Row } from '@/components/board';
-import { RULES, TOWNS, total, money, slug } from '@/lib/config';
+import { RULES, TOWNS, total, money, slug, categoryLeaders } from '@/lib/config';
 
 export default function Home() {
   const { ranked, loading, error } = useBoard();
@@ -16,10 +16,13 @@ export default function Home() {
     () => ranked.filter((l) => town === 'All towns' || l.town === town),
     [ranked, town]
   );
-  const categoryKings = useMemo(() => {
-    const seen = new Set();
-    return ranked.filter((l) => (seen.has(l.category) ? false : (seen.add(l.category), true))).slice(0, 6);
-  }, [ranked]);
+  // Category crowns go to the most customer boosts, not the most money, and
+  // every category that has one is shown — there are 14, and burying the
+  // smaller ones is exactly how a niche business decides not to enter.
+  const categoryKings = useMemo(
+    () => [...categoryLeaders(ranked).values()].sort((a, b) => b.boost_count - a.boost_count),
+    [ranked]
+  );
   const trending = useMemo(
     () => [...ranked].sort((a, b) => b.boost_count - a.boost_count).slice(0, 5),
     [ranked]
@@ -126,6 +129,15 @@ export default function Home() {
                 <div className="t">Rolls over</div>
                 <div className="d">Your bid carries to next month at full value, or take a digital placement now.</div>
               </div>
+              <div className="prize-item cat-prize">
+                <div className="n">👑 EVERY CATEGORY CROWN</div>
+                <div className="t">Won on boosts, not budget</div>
+                <div className="d">
+                  Most customer boosts in your category takes it, whatever you spent. You get a line
+                  in the category strip on the card, a named mention in the monthly email, a social
+                  post, and a badge you can share.
+                </div>
+              </div>
             </div>
             <div className="rule-note">
               HOW ENTRY WORKS: a business bids itself onto the board to enter, minimum ${RULES.MIN_ENTRY}.
@@ -137,8 +149,11 @@ export default function Home() {
 
         {categoryKings.length > 0 && (
           <section id="categories">
-            <h2 className="sec">Every category has a king</h2>
-            <p className="sec-sub">Tap through to the full category board.</p>
+            <h2 className="sec">Every category has a crown</h2>
+            <p className="sec-sub">
+              Category crowns are won on customer boosts, not budget — the business with the
+              most regulars behind it takes it. Tap through to the full category board.
+            </p>
             <div className="cat-grid">
               {categoryKings.map((l) => (
                 <Link className="cat" key={l.id} href={`/c/${slug(l.category)}`}>
@@ -146,7 +161,7 @@ export default function Home() {
                   <div className="kn">{l.name}</div>
                   <div className="kt">{l.town}</div>
                   <div className="kb">
-                    <span className="boosted">{l.boost_count} boosts</span> · {money(total(l))} to beat
+                    <span className="boosted">{l.boost_count} {l.boost_count === 1 ? 'boost' : 'boosts'}</span> to beat · {money(total(l))} raised
                   </div>
                 </Link>
               ))}

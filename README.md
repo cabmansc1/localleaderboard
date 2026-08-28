@@ -31,7 +31,32 @@ featured panel on next month's printed 9x12 card.
 - A business bids itself onto the board, minimum `$10`. That bid is the opt-in —
   nothing is printed on the card without it.
 - Once listed, anyone can boost that business, minimum `$2`.
-- Rank is by total raised: the business's own bid plus all customer boosts.
+
+### Two crowns, two games
+
+| | Won on | What it is | Reward |
+| --- | --- | --- | --- |
+| **The Crown** | Total raised | An auction | The featured panel |
+| **Category crown** | Customer boosts | A popularity contest | Category strip, email mention, social post, badge |
+
+A business with budget competes for the Crown. A business with loyal regulars
+competes for its category and can win it having spent almost nothing. Both have
+a reason to enter.
+
+A business with zero boosts holds no category crown no matter what it bid
+(`MIN_BOOSTS_FOR_CROWN`), so a category can sit uncrowned.
+
+### Badges
+
+`/api/badge/[id]` renders a PNG for any listing — wide (1200x630) or
+`?size=square` (1080x1080) — offered for download on the listing page.
+
+Badges are worded to state exactly what they measure: "Most-Backed Roofing …
+Ranked by customer boosts … 11 customers backing … AUGUST 2026". A business
+posts one as advertising, so it must never imply a merit ranking the board does
+not perform — never "Best" or "Voted #1". Ranking category crowns on boosts is
+what makes the honest wording also the compelling one. The month is on the
+badge so the claim stays true and has to be defended.
 
 Full rules live in `RULES_LIST` in `lib/config.js`.
 
